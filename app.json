@@ -1,0 +1,19 @@
+{
+  "name": "TMT-XMD-BOT",
+  "description": "WhatsApp MD bot (Baileys)",
+  "repository": "",
+  "keywords": ["whatsapp", "baileys", "bot", "node"],
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs.git"
+    }
+  ],
+  "env": {
+    "SESSION_ID": {
+      "description": "TMT-XMD-BOT session string (e.g. TMT-XMD-BOT!<base64_compressed_data>)",
+      "required": false,
+      "value": ""
+    }
+  }
+}
+
