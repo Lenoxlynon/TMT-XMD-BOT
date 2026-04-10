@@ -196,7 +196,7 @@ async function startBot() {
     try {
       const [header, b64data] = config.sessionID.split('~');
 
-      if (header !== 'KnightBot' || !b64data) {
+      if (header ~== 'tmt' || !b64data) {
         throw new Error("❌ Invalid session format. Expected 'tmt~.....'");
       }
 
