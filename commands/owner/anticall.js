@@ -1,57 +1,44 @@
-/**
- * Anti-Call Command - Enable or disable anti-call system
- */
+const fs = require('fs');
 
-module.exports = {
-  name: 'anticall',
-  category: 'owner',
-  ownerOnly: true,
-  description: 'Enable or disable anti-call system',
-  usage: '.anticall on/off',
+const ANTICALL_PATH = './data/anticall.json';
 
-  async execute(sock, msg, args, extra) {
-    if (!args[0]) {
-      return extra.reply('Usage: .anticall on/off');
-    }
-
-    const option = args[0].toLowerCase();
-
-    if (!['on', 'off'].includes(option)) {
-      return extra.reply('Usage: .anticall on/off');
-    }
-
-    const enabled = option === 'on';
-
-    // Update the default setting in config
-    const fs = require('fs');
-    const path = require('path');
-    const configPath = path.join(__dirname, '../../config.js');
-    
+function readState() {
     try {
-      // Read the current config file
-      let configFile = fs.readFileSync(configPath, 'utf8');
-      
-      // Update the anticall setting
-      if (enabled) {
-        configFile = configFile.replace(/anticall:\s*false/g, 'anticall: true');
-      } else {
-        configFile = configFile.replace(/anticall:\s*true/g, 'anticall: false');
-      }
-      
-      // Write the updated config file
-      fs.writeFileSync(configPath, configFile);
-      
-      // Clear the config cache so the next require gets the updated version
-      delete require.cache[require.resolve('../../config')];
-      
-      await extra.reply(
-        enabled
-          ? '✅ Anti-call enabled. Calls will be auto-rejected & blocked.'
-          : '❌ Anti-call disabled.'
-      );
-    } catch (err) {
-      console.error('[anticall cmd] error:', err);
-      extra.reply('❌ Error updating anti-call setting.');
+        if (!fs.existsSync(ANTICALL_PATH)) return { enabled: false };
+        const raw = fs.readFileSync(ANTICALL_PATH, 'utf8');
+        const data = JSON.parse(raw || '{}');
+        return { enabled: !!data.enabled };
+    } catch {
+        return { enabled: false };
     }
-  }
-};
+}
+
+function writeState(enabled) {
+    try {
+        if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+        fs.writeFileSync(ANTICALL_PATH, JSON.stringify({ enabled: !!enabled }, null, 2));
+    } catch {}
+}
+
+async function anticallCommand(sock, chatId, message, args) {
+    const state = readState();
+    const sub = (args || '').trim().toLowerCase();
+
+    if (!sub || (sub !== 'on' && sub !== 'off' && sub !== 'status')) {
+        await sock.sendMessage(chatId, { text: '*ANTICALL*\n\n.anticall on  - Enable auto-block on incoming calls\n.anticall off - Disable anticall\n.anticall status - Show current status' }, { quoted: message });
+        return;
+    }
+
+    if (sub === 'status') {
+        await sock.sendMessage(chatId, { text: `Anticall is currently *${state.enabled ? 'ON' : 'OFF'}*.` }, { quoted: message });
+        return;
+    }
+
+    const enable = sub === 'on';
+    writeState(enable);
+    await sock.sendMessage(chatId, { text: `Anticall is now *${enable ? 'ENABLED' : 'DISABLED'}*.` }, { quoted: message });
+}
+
+module.exports = { anticallCommand, readState };
+
+
