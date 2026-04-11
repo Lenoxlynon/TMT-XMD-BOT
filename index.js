@@ -191,13 +191,13 @@ async function startBot() {
   const sessionFolder = `./${config.sessionName}`;
   const sessionFile = path.join(sessionFolder, 'creds.json');
 
-  // Check if sessionID is provided and process tmt~ format session
-  if (config.sessionID && config.sessionID.startsWith('tmt~')) {
+  // Check if sessionID is provided and process KnightBot! format session
+  if (config.sessionID && config.sessionID.startsWith('KnightBot!')) {
     try {
-      const [header, b64data] = config.sessionID.split('~');
+      const [header, b64data] = config.sessionID.split('!');
 
-      if (header ~== 'tmt' || !b64data) {
-        throw new Error("❌ Invalid session format. Expected 'tmt~.....'");
+      if (header !== 'KnightBot' || !b64data) {
+        throw new Error("❌ Invalid session format. Expected 'KnightBot!.....'");
       }
 
       const cleanB64 = b64data.replace('...', '');
@@ -211,10 +211,10 @@ async function startBot() {
 
       // Write decompressed session data to creds.json
       fs.writeFileSync(sessionFile, decompressedData, 'utf8');
-      console.log('📡 Session : 🔑 Retrieved from tmt Session');
+      console.log('📡 Session : 🔑 Retrieved from KnightBot Session');
 
     } catch (e) {
-      console.error('📡 Session : ❌ Error processing tmt session:', e.message);
+      console.error('📡 Session : ❌ Error processing KnightBot session:', e.message);
       // Continue with normal QR flow if session processing fails
     }
   }
@@ -296,7 +296,7 @@ async function startBot() {
         setTimeout(() => startBot(), 3000);
       }
     } else if (connection === 'open') {
-      console.log('\n✅ Bot connected successfully~');
+      console.log('\n✅ Bot connected successfully!');
       console.log(`📱 Bot Number: ${sock.user.id.split(':')[0]}`);
       console.log(`🤖 Bot Name: ${config.botName}`);
       console.log(`⚡ Prefix: ${config.prefix}`);
