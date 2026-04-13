@@ -9,3 +9,5 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
     <img src="https://readme-typing-svg.demolab.com?font=Rockwell&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=TMT-USSO-Official;Multi+Device+Whatsapp+Bot;Made+by+TMT-USSO-THE-CHAMP" alt="Typing SVG" /> 
   <img src="https://o.uguu.se/QJoZAYHV.jpg" alt="TMT-XMD-BOT" height="250"> 
 </div>
+
+[![Typing SVG](https://readme-typing-svg.demolab.com/?lines=The+bot+supports+deployment;On+all+free+panels+easily)](https://git.io/typing-svg)
