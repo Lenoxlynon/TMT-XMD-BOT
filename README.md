@@ -13,7 +13,7 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
 [![Typing SVG](https://readme-typing-svg.demolab.com/?lines=The+bot+supports+deployment;On+all+free+panels+easily)](https://git.io/typing-svg)
 TMT-XMD-BOT SESSION PAIRING
 <p align="center">
-  <a href="https://knight-bot-paircode.onrender.com/" target="_blank">
+  <a href="https://TMT-XMD-paircode.onrender.com/" target="_blank">
     <img alt="Pair Code" src="https://img.shields.io/badge/PAIR%20CODE%201-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkorange&color=darkorange"/>
   </a>
 </p>
