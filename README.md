@@ -17,6 +17,9 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
     <img alt="Pair Code" src="https://img.shields.io/badge/PAIR%20CODE%201-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=darkred"/>
   </a>
 </p>
+
+---
+
 > 𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧 ZIP
 <p align="center">
   <a href="https://github.com/Lenoxlynon/TMT-XMD-BOT/archive/refs/heads/main.zip" target="_blank">
