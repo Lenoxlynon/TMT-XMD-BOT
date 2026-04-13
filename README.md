@@ -33,3 +33,12 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
         <img alt="Fork Repo" src="https://img.shields.io/badge/Fork%20Repo-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkgreen&color=darkblue"/>
     </a>
 </p>
+> # 𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧
+</div>
+<div align="center">
+  
+[![Gmail](https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white)](tmtlynox@gmail.com)
+[![Support](https://img.shields.io/badge/Support-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/tmtucethechamp)
+[![WhatsApp](https://img.shields.io/badge/STAFF-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/27749797749)
+[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)]([[[https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)/)
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://https://www.youtube.com/@t-d-u_thedancehallusso
