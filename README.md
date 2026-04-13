@@ -3,7 +3,7 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
 > DEPLOY TMT-𝗫MD
 <div align="center">    
   <a href="https://dashboard.heroku.com/new?template=https://github.com/Lenoxlynon/TMT-XMD-BOT">
-    <img src="https://img.shields.io/badge/Heroku%20Deploy-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=purple" alt="Deploy TMT XMD"/>
+    <img src="https://img.shields.io/badge/Heroku%20Deploy-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=green" alt="Deploy TMT XMD"/>
   </a>
 </div>
     <img src="https://readme-typing-svg.demolab.com?font=Rockwell&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=TMT-USSO-Official;Multi+Device+Whatsapp+Bot;Made+by+TMT-USSO-THE-CHAMP" alt="Typing SVG" /> 
@@ -14,7 +14,7 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
 TMT-XMD-BOT SESSION PAIRING
 <p align="center">
   <a href="https://knight-bot-paircode.onrender.com/" target="_blank">
-    <img alt="Pair Code" src="https://img.shields.io/badge/PAIR%20CODE%201-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkorange&color=darkorange"/>
+    <img alt="Pair Code" src="https://img.shields.io/badge/PAIR%20CODE%201-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=darkred"/>
   </a>
 </p>
 > TMT-XMD-BOT-ZIP
