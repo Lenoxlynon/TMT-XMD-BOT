@@ -21,7 +21,7 @@ module.exports = {
   name: 'song',
   aliases: ['play', 'music', 'yta'],
   category: 'media',
-  description: 'Download audio from YouTube',
+  description: 'Download document from YouTube',
   usage: '.song <song name or YouTube link>',
   
   async execute(sock, msg, args) {
@@ -174,43 +174,43 @@ module.exports = {
 
       // Check for MP4/M4A (ftyp box)
       if (asciiSignature === 'ftyp' || hexSignature.startsWith('000000')) {
-        // Check if it's M4A (audio/mp4)
-        const ftypBox = audioBuffer.slice(4, 8).toString('ascii');
+        // Check if it's M4A (document/mp4)
+        const ftypBox = documentBuffer.slice(4, 8).toString('ascii');
         if (ftypBox === 'ftyp') {
           detectedFormat = 'M4A/MP4';
-          actualMimetype = 'audio/mp4';
+          actualMimetype = 'document/mp4';
           fileExtension = 'm4a';
         }
       }
       // Check for MP3 (ID3 tag or MPEG frame sync)
-      else if (audioBuffer.toString('ascii', 0, 3) === 'ID3' || 
-               (audioBuffer[0] === 0xFF && (audioBuffer[1] & 0xE0) === 0xE0)) {
+      else if (documentBuffer.toString('ascii', 0, 3) === 'ID3' || 
+               (documentBuffer[0] === 0xFF && (documentBuffer[1] & 0xE0) === 0xE0)) {
         detectedFormat = 'MP3';
-        actualMimetype = 'audio/mpeg';
+        actualMimetype = 'document/mpeg';
         fileExtension = 'mp3';
       }
       // Check for OGG/Opus
-      else if (audioBuffer.toString('ascii', 0, 4) === 'OggS') {
+      else if (documentBuffer.toString('ascii', 0, 4) === 'OggS') {
         detectedFormat = 'OGG/Opus';
-        actualMimetype = 'audio/ogg; codecs=opus';
+        actualMimetype = 'document/ogg; codecs=opus';
         fileExtension = 'ogg';
       }
       // Check for WAV
       else if (audioBuffer.toString('ascii', 0, 4) === 'RIFF') {
         detectedFormat = 'WAV';
-        actualMimetype = 'audio/wav';
+        actualMimetype = 'document/wav';
         fileExtension = 'wav';
       }
       else {
         // Default to M4A since that's what the signature often suggests
-        actualMimetype = 'audio/mp4';
+        actualMimetype = 'document/mp4';
         fileExtension = 'm4a';
         detectedFormat = 'Unknown (defaulting to M4A)';
       }
 
       // Convert to MP3 if not already MP3
-      let finalBuffer = audioBuffer;
-      let finalMimetype = 'audio/mpeg';
+      let finalBuffer = documentBuffer;
+      let finalMimetype = 'document/mpeg';
       let finalExtension = 'mp3';
 
       if (fileExtension !== 'mp3') {
@@ -219,7 +219,7 @@ module.exports = {
           if (!finalBuffer || finalBuffer.length === 0) {
             throw new Error('Conversion returned empty buffer');
           }
-          finalMimetype = 'audio/mpeg';
+          finalMimetype = 'document/mpeg';
           finalExtension = 'mp3';
         } catch (convErr) {
           throw new Error(`Failed to convert ${detectedFormat} to MP3: ${convErr.message}`);
@@ -230,7 +230,7 @@ module.exports = {
       await sock.sendMessage(chatId, {
         audio: finalBuffer,
         mimetype: finalMimetype,
-        fileName: `${(audioData.title || video.title || 'song').replace(/[^\w\s-]/g, '')}.${finalExtension}`,
+        fileName: `${(documentData.title || video.title || 'song').replace(/[^\w\s-]/g, '')}.${finalExtension}`,
         ptt: false
       }, { quoted: msg });
 
