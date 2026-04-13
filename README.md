@@ -26,3 +26,7 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
     <img alt="Download ZIP" src="https://img.shields.io/badge/DOWNLOAD%20ZIP-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=darkgreen"/>
   </a>
 </p>
+<a href="https://github.com/Lenoxlynon/TMT-XMD-BOT/fork" target="_blank">
+        <img alt="Fork Repo" src="https://img.shields.io/badge/Fork%20Repo-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkgreen&color=darkblue"/>
+    </a>
+</p>
