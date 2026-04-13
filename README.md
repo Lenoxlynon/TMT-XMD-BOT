@@ -45,3 +45,13 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
 [![WhatsApp](https://img.shields.io/badge/STAFF-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/27749797749)
 [![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)]([[[https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)](https://www.facebook.com/tmt.usso.2025/g/1CxYUfpyoF/)/)
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://https://www.youtube.com/@t-d-u_thedancehallusso
+### Join Us
+
+<div align="center">
+  <a href="t.me/tmtucethechamp">
+    <img src="https://img.shields.io/badge/Join%20Telegram-0078E7?style=for-the-badge&logo=telegram&logoColor=white" alt="Join Telegram"/>
+  </a>
+  <a href="https://whatsapp.com/channel/0029Vb7QFTGKrWQtPH4ek91U">
+    <img src="https://img.shields.io/badge/Join%20WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Join WhatsApp"/>
+  </a>
+</div>
