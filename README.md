@@ -8,5 +8,5 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
 </div>
     <img src="https://readme-typing-svg.demolab.com?font=Rockwell&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=TMT-USSO-Official;Multi+Device+Whatsapp+Bot;Made+by+TMT-USSO-THE-CHAMP" alt="Typing SVG" />
 div align="center"> 
-  <img src="https://n.uguu.se/NrPdKMWb.jpg" alt="TMT-XMD-BOT" height="250"> 
+  <img src="https://n.uguu.se/EWWmAyHG.jpg" alt="TMT-XMD-BOT" height="250"> 
 </div>
