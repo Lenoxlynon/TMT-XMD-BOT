@@ -6,3 +6,4 @@ GREATNESS ON A DIFFERENT LEVEL 💯 (GOD MODE)
     <img src="https://img.shields.io/badge/Heroku%20Deploy-100000?style=for-the-badge&logo=scan&logoColor=white&labelColor=darkblue&color=purple" alt="Deploy TMT XMD"/>
   </a>
 </div>
+    <img src="https://readme-typing-svg.demolab.com?font=Rockwell&size=50&pause=1000&color=33ff00&center=true&width=910&height=100&lines=June-Official;Multi+Device+Whatsapp+Bot;Made+by+Supreme" alt="Typing SVG" />
