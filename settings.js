@@ -4,8 +4,6 @@ const settings = {
   botName: "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
   botOwner: 'Professor', // Your name
   ownerNumber: '27749797749', //Set your number here without + symbol, just add country code & number without any space
-sessionName: 'tmt_session',  // Folder name for sessions
-  sessionID: process.env.SESSION_ID || 'tmt~default',  // Can be tmt~xxx or tmt~default
   giphyApiKey: 'qnl7ssQChTdPjsKta2Ax2LMaGXz303tq',
   commandMode: "public",
   maxStoreMessages: 20, 
