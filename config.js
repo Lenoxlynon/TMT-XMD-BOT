@@ -1,4 +1,4 @@
-/**
+*
  * Global Configuration for WhatsApp MD Bot
  */
 
@@ -6,10 +6,7 @@ module.exports = {
     // Bot Owner Configuration
     ownerNumber: ['263713731923','27749797749'], // Add your number without + or spaces (e.g., 27749797749)
     ownerName: ['𝐓𝐌𝐓', '𝐃𝐅𝐒'], // Owner names corresponding to ownerNumber array
-    module.exports = {
-  // Session configuration - NOW SUPPORTS tmt~ FORMAT!
-  sessionName: 'tmt_session',  // Folder name for sessions
-  sessionID: process.env.SESSION_ID || 'tmt~default',  // Can be tmt~xxx or tmt~default
+    
     // Bot Configuration
     botName: '𝐓𝐌𝐓-𝐗𝐌𝐃',
     prefix: '.',
@@ -89,4 +86,3 @@ module.exports = {
       youtube: 'http://youtube.com/@'
     }
 };
-  
