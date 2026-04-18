@@ -4,19 +4,19 @@
 
 module.exports = {
     // Bot Owner Configuration
-    ownerNumber: ['263713731923','27824275911'], // Add your number without + or spaces (e.g., 919876543210)
-    ownerName: ['𝐓𝐌𝐓', '𝐃𝐅𝐒'], // Owner names corresponding to ownerNumber array
+    ownerNumber: ['263713731923','27749797749'], // Add your number without + or spaces (e.g., 919876543210)
+    ownerName: ['𝐓𝐌𝐓', 'USSO'], // Owner names corresponding to ownerNumber array
     
     // Bot Configuration
     botName: '𝐓𝐌𝐓-𝐗𝐌𝐃',
     prefix: '.',
     sessionName: 'session',
     sessionID: process.env.SESSION_ID || '',
-    newsletterJid: '120363161513685998@newsletter', // Newsletter JID for menu forwarding
+    newsletterJid: '120363424882345646@newsletter', // Newsletter JID for menu forwarding
     updateZipUrl: 'https://github.com/Lenoxlynon/TMT-XMD-BOT/archive/refs/heads/main.zip', // URL to latest code zip for .update command
     
     // Sticker Configuration
-    packname: '𝐓𝐌𝐓 𝐃𝐅𝐒',
+    packname: '𝐓𝐌𝐓',
     
     // Bot Behavior
     selfMode: false, // Private mode - only owner can use commands
