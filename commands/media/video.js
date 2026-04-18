@@ -38,11 +38,9 @@ module.exports = {
             // Get video info from YouTube
             const info = await ytdl.getInfo(videoUrl);
             
-            // Choose video format (quality 18 = 360p)
-            let format = ytdl.chooseFormat(info.formats, { quality: '18' });
-            if (!format) {
-                format = ytdl.chooseFormat(info.formats, { quality: 'lowest' });
-            }
+            // FIXED: Choose best available format instead of forcing quality 18
+            let format = info.formats.find(f => f.hasVideo && f.hasAudio);
+            if (!format) format = info.formats.find(f => f.hasVideo);
             
             // Send the video
             await TmT.sendMessage(message.key.remoteJid, {
