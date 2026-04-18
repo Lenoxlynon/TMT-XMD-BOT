@@ -87,3 +87,9 @@ module.exports = {
     }
 };
   
+// Enable media sending
+module.exports = {
+    allowMedia: true,
+    maxVideoSize: 50 * 1024 * 1024, // 50MB limit
+    // ... other configs
+};
