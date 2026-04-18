@@ -51,3 +51,10 @@
         "nodemon": "^3.1.0"
     }
 }
+{
+  "dependencies": {
+    "ytdl-core": "^4.11.5",
+    "yt-search": "^2.10.3",
+    "node-fetch": "^2.7.0"
+  }
+}
