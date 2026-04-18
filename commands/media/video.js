@@ -4,59 +4,43 @@ module.exports = {
     description: 'Download video by searching song name',
     category: 'downloader',
     async execute(TmT, message, args, command) {
-        // CHECK 1: Make sure user provided a search query
         if (!args[0]) {
             return TmT.sendMessage(message.key.remoteJid, { text: '❌ Please provide a video name!\nExample: .video Shape of You' });
         }
         
-        // Get the search query (everything user typed)
         const query = args.join(' ');
-        
-        // Send searching message
         await TmT.sendMessage(message.key.remoteJid, { text: `🔍 Searching for "${query}"...` });
         
         try {
-            // Import required libraries
-            const ytdl = require('ytdl-core');
+            // FIXED: Using @distube/ytdl-core instead of ytdl-core
+            const ytdl = require('@distube/ytdl-core');
             const ytSearch = require('yt-search');
             
-            // Search YouTube for the video
             const searchResults = await ytSearch(query);
             
-            // CHECK 2: Make sure we found something
             if (!searchResults.videos || searchResults.videos.length === 0) {
                 return TmT.sendMessage(message.key.remoteJid, { text: '❌ No videos found for that name!' });
             }
             
-            // Get the first search result
             const video = searchResults.videos[0];
             const videoUrl = video.url;
             
-            // Update status message
             await TmT.sendMessage(message.key.remoteJid, { text: `📥 Found: ${video.title}\n⏳ Downloading...` });
             
-            // Get video info from YouTube
             const info = await ytdl.getInfo(videoUrl);
             
-            // FIXED: Choose best available format instead of forcing quality 18
+            // Find best available format
             let format = info.formats.find(f => f.hasVideo && f.hasAudio);
             if (!format) format = info.formats.find(f => f.hasVideo);
             
-            // Send the video
             await TmT.sendMessage(message.key.remoteJid, {
                 video: { url: format.url },
-                caption: `🎬 *${video.title}*\n⏱️ Duration: ${video.timestamp}\n👁️ Views: ${video.views || 'N/A'}\n🔗 ${videoUrl}`
+                caption: `🎬 *${video.title}*\n⏱️ Duration: ${video.timestamp}\n👁️ Views: ${video.views || 'N/A'}`
             });
             
         } catch (error) {
             console.error('Video download error:', error);
-            
-            // Handle specific errors
-            if (error.message.includes('private') || error.message.includes('age')) {
-                await TmT.sendMessage(message.key.remoteJid, { text: '❌ This video is private or age-restricted.' });
-            } else {
-                await TmT.sendMessage(message.key.remoteJid, { text: '❌ Failed to download video. Try another name or check your connection.' });
-            }
+            await TmT.sendMessage(message.key.remoteJid, { text: '❌ Failed to download video. Try another name or check your connection.' });
         }
     }
 };
