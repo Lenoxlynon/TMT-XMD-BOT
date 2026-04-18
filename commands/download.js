@@ -1,36 +1,42 @@
 module.exports = {
     name: 'video',
     alias: ['vd', 'ytvideo'],
-    description: 'Download YouTube videos',
+    description: 'Download video by searching song name',
     category: 'downloader',
     async execute(TmT, message, args, command) {
-        // CHECK 1: Make sure user provided a URL
+        // CHECK 1: Make sure user provided a search query
         if (!args[0]) {
-            return TmT.sendMessage(message.key.remoteJid, { text: '❌ Please provide a YouTube URL!\nExample: !video https://youtube.com/watch?v=...' });
+            return TmT.sendMessage(message.key.remoteJid, { text: '❌ Please provide a video name!\nExample: .video Shape of You' });
         }
         
-        // CHECK 2: Clean the URL (remove spaces and line breaks)
-        let url = args[0].trim();
+        // Get the search query (everything user typed)
+        const query = args.join(' ');
         
-        // CHECK 3: Basic YouTube URL validation
-        if (!url.includes('youtube.com/watch?v=') && !url.includes('youtu.be/')) {
-            return TmT.sendMessage(message.key.remoteJid, { text: '❌ Please provide a valid YouTube URL.' });
-        }
+        // Send searching message
+        await TmT.sendMessage(message.key.remoteJid, { text: `🔍 Searching for "${query}"...` });
         
-        // Send "downloading" message
-        await TmT.sendMessage(message.key.remoteJid, { text: '⏳ Downloading your video...' });
-        
-        // CHECK 4: Try to download the video
         try {
+            // Import required libraries
             const ytdl = require('ytdl-core');
+            const ytSearch = require('yt-search');
             
-            // Validate URL with ytdl-core
-            if (!ytdl.validateURL(url)) {
-                return TmT.sendMessage(message.key.remoteJid, { text: '❌ Invalid YouTube URL.' });
+            // Search YouTube for the video
+            const searchResults = await ytSearch(query);
+            
+            // CHECK 2: Make sure we found something
+            if (!searchResults.videos || searchResults.videos.length === 0) {
+                return TmT.sendMessage(message.key.remoteJid, { text: '❌ No videos found for that name!' });
             }
             
-            // Get video information
-            const info = await ytdl.getInfo(url);
+            // Get the first search result
+            const video = searchResults.videos[0];
+            const videoUrl = video.url;
+            
+            // Update status message
+            await TmT.sendMessage(message.key.remoteJid, { text: `📥 Found: ${video.title}\n⏳ Downloading...` });
+            
+            // Get video info from YouTube
+            const info = await ytdl.getInfo(videoUrl);
             
             // Choose video format (quality 18 = 360p)
             let format = ytdl.chooseFormat(info.formats, { quality: '18' });
@@ -41,7 +47,7 @@ module.exports = {
             // Send the video
             await TmT.sendMessage(message.key.remoteJid, {
                 video: { url: format.url },
-                caption: `🎬 *${info.videoDetails.title}*\n⏱️ Duration: ${info.videoDetails.lengthSeconds}s`
+                caption: `🎬 *${video.title}*\n⏱️ Duration: ${video.timestamp}\n👁️ Views: ${video.views || 'N/A'}\n🔗 ${videoUrl}`
             });
             
         } catch (error) {
@@ -51,7 +57,7 @@ module.exports = {
             if (error.message.includes('private') || error.message.includes('age')) {
                 await TmT.sendMessage(message.key.remoteJid, { text: '❌ This video is private or age-restricted.' });
             } else {
-                await TmT.sendMessage(message.key.remoteJid, { text: '❌ Failed to download video. The video might be too long or restricted.' });
+                await TmT.sendMessage(message.key.remoteJid, { text: '❌ Failed to download video. Try another name or check your connection.' });
             }
         }
     }
