@@ -1,5 +1,5 @@
 {
-    "name": "whatsapp-md-bot",
+    "name": "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
     "version": "1.0.0",
     "description": "WhatsApp MD-Style Multi-Command Bot with Baileys",
     "main": "index.js",
@@ -11,12 +11,12 @@
     },
     "keywords": [
         "whatsapp bot",
-        "TmT Bot Mini",
+        "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
         "bot",
         "baileys",
         "md"
     ],
-    "author": "Your Name",
+    "author": "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
     "license": "MIT",
     "dependencies": {
         "@bochilteam/scraper": "^5.0.1",
