@@ -25,8 +25,8 @@ module.exports = {
         await TmT.sendMessage(message.key.remoteJid, { text: `🎵 Searching for "${query}"...` });
         
         try {
-            // Import required libraries
-            const ytdl = require('ytdl-core');
+            // FIXED: Using @distube/ytdl-core instead of ytdl-core
+            const ytdl = require('@distube/ytdl-core');
             const ytSearch = require('yt-search');
             
             // Search YouTube for the song
@@ -44,15 +44,12 @@ module.exports = {
             // Update status
             await TmT.sendMessage(message.key.remoteJid, { text: `📥 Found: ${video.title}\n⏳ Downloading audio...` });
             
-            // Get video info
-            const info = await ytdl.getInfo(videoUrl);
-            
             // Create a safe filename (remove special characters)
             const safeTitle = video.title.replace(/[^\w\s]/gi, '').substring(0, 50);
             const audioFileName = `${safeTitle}.mp3`;
             const audioPath = path.join(__dirname, '..', 'temp', audioFileName);
             
-            // Download audio as MP3
+            // Download audio as MP3 using the fixed library
             const audioStream = ytdl(videoUrl, { 
                 filter: 'audioonly',
                 quality: 'highestaudio'
