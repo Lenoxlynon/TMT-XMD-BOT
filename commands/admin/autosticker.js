@@ -1,57 +1,53 @@
-/**
- * AutoSticker Command - Enable or disable auto-sticker conversion
- */
-
-const database = require('../../database');
-
 module.exports = {
-  name: 'autosticker',
-  aliases: ['autos', 'asticker'],
-  category: 'admin',
-  description: 'Enable or disable auto-sticker conversion (images/videos automatically become stickers)',
-  usage: '.autosticker <on/off>',
-  groupOnly: true,
-  adminOnly: true,
-  botAdminNeeded: false,
-  
-  async execute(sock, msg, args, extra) {
-    try {
-      if (!args[0]) {
-        const settings = database.getGroupSettings(extra.from);
-        const status = settings.autosticker ? 'ON' : 'OFF';
-        return extra.reply(
-          `📌 *AutoSticker Status*\n\n` +
-          `Status: *${status}*\n\n` +
-          `When enabled, all images and videos sent in this group will automatically be converted to stickers.\n\n` +
-          `Usage:\n` +
-          `  .autosticker on\n` +
-          `  .autosticker off`
-        );
-      }
-      
-      const opt = args[0].toLowerCase();
-      
-      if (opt === 'on') {
-        if (database.getGroupSettings(extra.from).autosticker) {
-          return extra.reply('*AutoSticker is already ON*');
+    name: 'antisticker',
+    alias: ['antistick', 'nosticker'],
+    description: 'Automatically delete stickers in group (Admin only)',
+    category: 'group',
+    async execute(sock, msg, args, cmd, ctx) {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        // Check if in group
+        if (!from.endsWith('@g.us')) {
+            await sock.sendMessage(from, { text: '❌ This command only works in groups!' });
+            return;
         }
-        database.updateGroupSettings(extra.from, { autosticker: true });
-        return extra.reply('✅ *AutoSticker has been turned ON*\n\nAll images and videos will now automatically be converted to stickers!');
-      }
-      
-      if (opt === 'off') {
-        if (!database.getGroupSettings(extra.from).autosticker) {
-          return extra.reply('*AutoSticker is already OFF*');
+        
+        try {
+            // Get group metadata to check admin status
+            const groupMetadata = await sock.groupMetadata(from);
+            const isAdmin = groupMetadata.participants.some(
+                p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin')
+            );
+            
+            if (!isAdmin) {
+                await sock.sendMessage(from, { text: '❌ Only group admins can use this command!' });
+                return;
+            }
+            
+            // ✅ FIXED: Correct path for database (2 levels up)
+            const database = require('../../database');
+            const groupSettings = database.getGroupSettings(from);
+            
+            if (args[0] === 'on' || args[0] === 'enable') {
+                groupSettings.antisticker = true;
+                database.updateGroupSettings(from, groupSettings);
+                await sock.sendMessage(from, { text: '🛡️ *Anti-Sticker ENABLED*\n\nSticker messages will be deleted in this group.' });
+            } 
+            else if (args[0] === 'off' || args[0] === 'disable') {
+                groupSettings.antisticker = false;
+                database.updateGroupSettings(from, groupSettings);
+                await sock.sendMessage(from, { text: '🛡️ *Anti-Sticker DISABLED*\n\nStickers will no longer be deleted.' });
+            }
+            else {
+                const status = groupSettings.antisticker ? '✅ ENABLED' : '❌ DISABLED';
+                await sock.sendMessage(from, { 
+                    text: `🛡️ *Anti-Sticker Status*\n\nCurrent: ${status}\n\nTo enable: .antisticker on\nTo disable: .antisticker off` 
+                });
+            }
+        } catch (error) {
+            console.error('Anti-sticker command error:', error);
+            await sock.sendMessage(from, { text: '❌ Error checking admin status. Make sure you are an admin.' });
         }
-        database.updateGroupSettings(extra.from, { autosticker: false });
-        return extra.reply('❌ *AutoSticker has been turned OFF*');
-      }
-      
-      return extra.reply('❌ Invalid option!\nUsage: .autosticker <on/off>');
-    } catch (error) {
-      console.error('[AutoSticker Command Error]:', error);
-      return extra.reply('❌ Error updating autosticker setting.');
     }
-  }
 };
-
