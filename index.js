@@ -68,6 +68,68 @@ const path = require('path');
 const zlib = require('zlib');
 const os = require('os');
 
+// Global commands reference for hot reload
+let globalCommands = null;
+
+// Function to reload commands without restart
+async function reloadCommands(sock, from) {
+  try {
+    // Clear command cache from require cache
+    const commandsPath = path.join(__dirname, 'commands');
+    
+    const clearCacheRecursive = (dir) => {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          const filePath = path.join(dir, file);
+          const stat = fs.statSync(filePath);
+          if (stat.isDirectory()) {
+            clearCacheRecursive(filePath);
+          } else if (file.endsWith('.js')) {
+            delete require.cache[require.resolve(filePath)];
+          }
+        }
+      }
+    };
+    
+    clearCacheRecursive(commandsPath);
+    
+    // Also clear admin commands
+    const adminCommandsPath = path.join(__dirname, 'commands/admin');
+    if (fs.existsSync(adminCommandsPath)) {
+      clearCacheRecursive(adminCommandsPath);
+    }
+    
+    // Reload command loader
+    delete require.cache[require.resolve('./utils/commandLoader')];
+    const { loadCommands } = require('./utils/commandLoader');
+    
+    // Load new commands
+    const newCommands = loadCommands();
+    
+    // Update the handler's commands reference
+    if (handler.updateCommands) {
+      handler.updateCommands(newCommands);
+    }
+    
+    // Store in global
+    globalCommands = newCommands;
+    
+    if (from) {
+      await sock.sendMessage(from, { text: '✅ *Commands Reloaded Successfully!*\n\nNew commands are now active without restart.\n\n📝 Added commands will work immediately.\n⚠️ Commands that require new dependencies need a full restart.' });
+    }
+    
+    console.log('✅ Commands hot-reloaded successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to reload commands:', error);
+    if (from) {
+      await sock.sendMessage(from, { text: `❌ Failed to reload commands: ${error.message}` });
+    }
+    return false;
+  }
+}
+
 // Remove Puppeteer cache (if some dependency downloaded Chromium into ~/.cache/puppeteer)
 function cleanupPuppeteerCache() {
   try {
@@ -303,6 +365,7 @@ async function startBot() {
       const ownerNames = Array.isArray(config.ownerName) ? config.ownerName.join(',') : config.ownerName;
       console.log(`👑 Owner: ${ownerNames}\n`);
       console.log('Bot is ready to receive messages!\n');
+      console.log('💡 Hot Reload: Use .reload to add new commands without restart!');
 
       // Set bot status
       if (config.autoBio) {
@@ -336,6 +399,16 @@ async function startBot() {
       jid.includes('@newsletter.');
   };
 
+  // Helper to check if sender is owner
+  const isOwner = (sender) => {
+    if (!sender) return false;
+    const senderNumber = sender.split('@')[0];
+    return config.ownerNumber.some(owner => {
+      const ownerNumber = owner.includes('@') ? owner.split('@')[0] : owner;
+      return ownerNumber === senderNumber;
+    });
+  };
+
   // Messages handler - Process only new messages
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     // Only process "notify" type (new messages), skip "append" (old messages from history)
@@ -354,6 +427,57 @@ async function startBot() {
       // System message filter - ignore broadcast/status/newsletter messages
       if (isSystemJid(from)) {
         continue; // Silently ignore system messages
+      }
+
+      // Check for .reload command (owner only)
+      let body = '';
+      if (msg.message?.conversation) {
+        body = msg.message.conversation;
+      } else if (msg.message?.extendedTextMessage?.text) {
+        body = msg.message.extendedTextMessage.text;
+      }
+      
+      if (body && body.trim() === '.reload') {
+        const sender = msg.key.participant || msg.key.remoteJid;
+        if (isOwner(sender)) {
+          // Handle reload asynchronously without blocking
+          (async () => {
+            await reloadCommands(sock, from);
+          })();
+          continue; // Skip normal processing
+        }
+      }
+      
+      // Check for .updatebot command (owner only)
+      if (body && body.trim() === '.updatebot') {
+        const sender = msg.key.participant || msg.key.remoteJid;
+        if (isOwner(sender)) {
+          // Handle update asynchronously
+          (async () => {
+            await sock.sendMessage(from, { text: '🔄 Pulling latest updates from GitHub...' });
+            try {
+              const { exec } = require('child_process');
+              const util = require('util');
+              const execPromise = util.promisify(exec);
+              
+              const { stdout, stderr } = await execPromise('git pull origin main 2>&1');
+              
+              if (stderr && !stderr.includes('Already up to date') && !stderr.includes('up-to-date')) {
+                await sock.sendMessage(from, { text: `⚠️ Issues during pull:\n\`\`\`${stderr.substring(0, 500)}\`\`\`` });
+              }
+              
+              await sock.sendMessage(from, { text: `✅ *GitHub Update Complete*\n\n\`\`\`${stdout.substring(0, 500) || 'Already up to date'}\`\`\`\n\n🔄 Reloading commands...` });
+              
+              // Reload commands after pull
+              await reloadCommands(sock, from);
+              
+              await sock.sendMessage(from, { text: '✅ *Update Complete!*\n\nCommands reloaded. New features are now active!' });
+            } catch (error) {
+              await sock.sendMessage(from, { text: `❌ Update failed: ${error.message}` });
+            }
+          })();
+          continue; // Skip normal processing
+        }
       }
 
       // Deduplication: Skip if message has already been processed
@@ -375,7 +499,6 @@ async function startBot() {
       processedMessages.add(msgId);
 
       // Store message FIRST (before processing)
-      // from already defined above in DM block check
       if (msg.key && msg.key.id) {
         if (!store.messages.has(from)) {
           store.messages.set(from, new Map());
@@ -460,6 +583,8 @@ console.log(`📦 Bot Name: ${config.botName}`);
 console.log(`⚡ Prefix: ${config.prefix}`);
 const ownerNames = Array.isArray(config.ownerName) ? config.ownerName.join(',') : config.ownerName;
 console.log(`👑 Owner: ${ownerNames}\n`);
+console.log('💡 Hot Reload Feature: Use .reload (owner only) to add new commands without restart!');
+console.log('💡 Update Feature: Use .updatebot (owner only) to pull latest code from GitHub!\n');
 
 // Proactively delete Puppeteer cache so it doesn't fill disk on panels
 cleanupPuppeteerCache();
@@ -497,5 +622,5 @@ process.on('unhandledRejection', (err) => {
   }
   console.error('Unhandled Rejection:', err);
 });
-// Export store for use in commands
-module.exports = { store };
+// Export store and reload function for use in commands
+module.exports = { store, reloadCommands };
