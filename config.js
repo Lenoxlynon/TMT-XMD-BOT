@@ -40,6 +40,7 @@ module.exports = {
       anticall: false, // Anti-call feature
       antigroupmention: false, // Anti-group mention feature
       antigroupmentionAction: 'delete', // 'delete', 'kick'
+      antisticker: false, // ✅ ADDED: Auto-delete stickers in groups
       welcome: false,
       welcomeMessage: '╭═══〘 𝐍𝐄𝐖 𝐌𝐄𝐌𝐁𝐄𝐑 〙═══⊷❍\n┃✦│ᴡᴇʟᴄᴏᴍᴇ: @user 👋\n┃✦│ᴍᴇᴍʙᴇʀ ᴄᴏᴜɴᴛ: #memberCount\n┃✦│ᴛɪᴍᴇ: time⏰\n┃✦╰───────────────\n\n*@user* Welcome to *@group*! 🎉\n*Group ᴅᴇsᴛʀɪᴘᴛɪᴏɴ*\ngroupDesc\n\n> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴍᴛ ʙᴏᴛ*',
       goodbye: false,
@@ -69,7 +70,7 @@ module.exports = {
       adminOnly: '🫧🥹Sorry This command is only for group admins fam!',
       groupOnly: 'Sorry 🤣This command can only be used in groups!',
       privateOnly: '🤫 This command can only be used in private chat fam!',
-      botAdminNeeded: '🔥To use 𝐓𝐌𝐓 𝐁𝐎𝐓 𝐁𝐘 𝐓𝐇𝐀𝐓 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐌𝐀𝐊𝐄 𝐌𝐄 𝐀𝐃𝐌𝐈𝐍!',
+      botAdminNeeded: '🔥To use 𝐓𝐌𝐓 𝐁𝐎𝐓 𝐁𝐘 𝐓𝐇𝐀𝐓 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐌𝐀𝐊𝐄 𝐌𝐄 𝐀𝐃𝐌𝐈Ｎ!',
       invalidCommand: '❓ Sorry command error ! Type .menu for help'
     },
     
@@ -86,4 +87,3 @@ module.exports = {
       youtube: 'http://youtube.com/@'
     }
 };
-  
