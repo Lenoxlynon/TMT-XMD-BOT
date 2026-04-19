@@ -463,6 +463,8 @@ const handleMessage = async (sock, msg) => {
       }
     }
 
+    // Inside handleMessage function, after handleAntigroupmention call
+await handleAntiSticker(sock, msg, groupMetadata);
     // Anti-sticker handler - deletes stickers when enabled
 const handleAntiSticker = async (sock, msg, groupMetadata) => {
   try {
