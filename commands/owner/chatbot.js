@@ -8,6 +8,9 @@ setInterval(() => {
     conversationMemory.clear();
 }, 3600000);
 
+// Your Gemini API key (already added)
+const GEMINI_API_KEY = 'AIzaSyCIEdnSiQbogqLvtE0shYBbxMfDjmqbpsU';
+
 module.exports = {
     name: 'chatbot',
     alias: ['ai', 'bot', 'gemini'],
@@ -42,13 +45,12 @@ module.exports = {
         const isEnabled = global.chatbotPrefs?.[sender] === true;
         if (!isEnabled) return;
         
-        const botNumber = message.key.remoteJid?.includes('@s.whatsapp.net') ? 
-            message.key.remoteJid : message.key.participant;
+        const botNumber = TmT.user.id?.split(':')[0] + '@s.whatsapp.net';
         if (sender === botNumber) return;
         
         if (isGroup) {
             const isMentioned = message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.includes(botNumber);
-            const isRepliedToBot = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+            const isRepliedToBot = message.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stanzaId;
             if (!isMentioned && !isRepliedToBot) return;
         }
         
@@ -60,6 +62,8 @@ module.exports = {
         }
         
         if (!userMessage) return;
+        
+        // Remove bot mention from message
         userMessage = userMessage.replace(/@\d+[\s\S]*?/, '').trim();
         if (userMessage.length === 0) return;
         
@@ -67,8 +71,7 @@ module.exports = {
         const aiResponse = await getAIResponse(userMessage, sender);
         
         await TmT.sendMessage(message.key.remoteJid, {
-            text: aiResponse,
-            edit: message.key
+            text: aiResponse
         });
     }
 };
@@ -79,10 +82,8 @@ async function getAIResponse(userMessage, userId) {
         history.push({ role: "user", parts: [{ text: userMessage }] });
         if (history.length > 10) history = history.slice(-10);
         
-        // 🔑 PASTE YOUR API KEY BELOW (replace the text between the quotes)
-        const GEMINI_API_KEY = 'AIzaSyCIEdnSiQbogqLvtE0shYBbxMfDjmqbpsU';
-        
-        if (GEMINI_API_KEY === 'AIzaSyCIEdnSiQbogqLvtE0shYBbxMfDjmqbpsU') {
+        // ✅ FIXED: Check if API key is missing or still the placeholder
+        if (!GEMINI_API_KEY || GEMINI_API_KEY === 'AIzaSyCIEdnSiQbogqLvtE0shYBbxMfDjmqbpsU' || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
             const fallbacks = [
                 "I'm your AI assistant! To get full AI responses, add your Gemini API key to the chatbot.js file.",
                 "Great question! You'll need to get a free Gemini API key from Google AI Studio to enable full AI features.",
@@ -103,6 +104,10 @@ async function getAIResponse(userMessage, userId) {
             { timeout: 15000 }
         );
         
+        if (!response.data.candidates || response.data.candidates.length === 0) {
+            return "⚠️ No response from AI. Please try again.";
+        }
+        
         const aiReply = response.data.candidates[0].content.parts[0].text;
         history.push({ role: "model", parts: [{ text: aiReply }] });
         conversationMemory.set(userId, history);
@@ -110,7 +115,16 @@ async function getAIResponse(userMessage, userId) {
         return aiReply;
         
     } catch (error) {
-        console.error('AI Error:', error.message);
+        console.error('AI Error:', error.response?.data || error.message);
+        
+        // Handle specific API errors
+        if (error.response?.status === 403) {
+            return "⚠️ API key is invalid or expired. Please check your Gemini API key.";
+        }
+        if (error.response?.status === 429) {
+            return "⚠️ Rate limit exceeded. Please try again later.";
+        }
+        
         return "⚠️ Sorry, I'm having trouble thinking right now. Please try again in a moment.";
     }
 }
