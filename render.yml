@@ -1,0 +1,33 @@
+# render.yml - Alternative filename
+services:
+  - type: web
+    name: tmt-xmd-bot
+    runtime: node
+    repo: https://github.com/YOUR_USERNAME/TMT-XMD-BOT
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /
+    autoDeploy: true
+
+  - type: web
+    name: tmt-xmd-pairing
+    runtime: node
+    repo: https://github.com/Lenoxlynon/TMT-XMD-BOT
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: node pairing.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.17.0
+      - key: PORT
+        value: 3000
+    healthCheckPath: /
+    autoDeploy: true
