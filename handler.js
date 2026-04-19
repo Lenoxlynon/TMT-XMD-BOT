@@ -462,8 +462,48 @@ const handleMessage = async (sock, msg) => {
         console.error('Error in antigroupmention handler:', error);
       }
     }
+
+    // Anti-sticker handler - deletes stickers when enabled
+const handleAntiSticker = async (sock, msg, groupMetadata) => {
+  try {
+    const from = msg.key.remoteJid;
+    const sender = msg.key.participant || msg.key.remoteJid;
     
-    // Track group message statistics
+    // Only works in groups
+    if (!from.endsWith('@g.us')) return;
+    
+    // Check if message is a sticker
+    const isSticker = msg.message?.stickerMessage || 
+                     msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage;
+    
+    if (!isSticker) return;
+    
+    // Check if anti-sticker is enabled for this group
+    const groupSettings = database.getGroupSettings(from);
+    if (!groupSettings.antisticker) return;
+    
+    // Check if sender is admin (admins bypass)
+    const senderIsAdmin = await isAdmin(sock, sender, from, groupMetadata);
+    const senderIsOwner = isOwner(sender);
+    
+    if (senderIsAdmin || senderIsOwner) return;
+    
+    // Delete the sticker
+    try {
+      await sock.sendMessage(from, { delete: msg.key });
+      // Optional: send warning (commented out to keep quiet)
+      // await sock.sendMessage(from, { 
+      //   text: `⚠️ Sticker deleted! This group has anti-sticker enabled.`,
+      //   mentions: [sender]
+      // }, { quoted: msg });
+    } catch (e) {
+      console.error('Failed to delete sticker:', e);
+    }
+  } catch (error) {
+    console.error('Error in anti-sticker handler:', error);
+  }
+};
+ // Track group message statistics
     if (isGroup) {
       addMessage(from, sender);
     }
