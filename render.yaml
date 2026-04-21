@@ -9,7 +9,7 @@ services:
     startCommand: node index.js
     envVars:
       - key: NODE_VERSION
-        value: 18.17.0
+        value: 20.18.0
     healthCheckPath: /
 
   # Pairing Code Generator
@@ -21,4 +21,4 @@ services:
     startCommand: node pairing.js
     envVars:
       - key: NODE_VERSION
-        value: 18.17.0
+        value: 20.18.0
