@@ -1,17 +1,26 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys').default;
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;  // ← Render sets this automatically
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Store active pairing sessions
 const pairingSessions = new Map();
+
+// ✅ FIXED: Dynamic import for Baileys ESM
+let makeWASocket, useMultiFileAuthState;
+
+async function loadBaileys() {
+  const baileys = await import('@whiskeysockets/baileys');
+  makeWASocket = baileys.default;
+  useMultiFileAuthState = baileys.useMultiFileAuthState;
+  console.log('✅ Baileys loaded successfully');
+}
 
 // HTML Page
 app.get('/', (req, res) => {
@@ -200,6 +209,11 @@ app.post('/api/pair', async (req, res) => {
     const sessionDir = path.join(__dirname, 'sessions', sessionId);
     
     try {
+        // Ensure Baileys is loaded
+        if (!makeWASocket) {
+            await loadBaileys();
+        }
+        
         // Ensure session directory exists
         if (!fs.existsSync(sessionDir)) {
             fs.mkdirSync(sessionDir, { recursive: true });
@@ -268,7 +282,9 @@ app.post('/api/pair', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+    // Pre-load Baileys on startup
+    await loadBaileys();
     console.log(`\n🔐 TMT-XMD-BOT Pairing Server`);
     console.log(`📡 Running on port ${PORT}`);
     console.log(`🌐 Open your Render URL to generate pairing code\n`);
