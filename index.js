@@ -53,13 +53,15 @@ console.warn = (...args) => {
 
 // Now safe to load libraries
 const pino = require('pino');
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  DisconnectReason,
-  Browsers,
-  fetchLatestBaileysVersion
-} = require('@whiskeysockets/baileys');
+
+// ✅ FIXED: Baileys ESM import for CommonJS
+const baileys = require('@whiskeysockets/baileys').default;
+const makeWASocket = baileys.default;
+const useMultiFileAuthState = baileys.useMultiFileAuthState;
+const DisconnectReason = baileys.DisconnectReason;
+const Browsers = baileys.Browsers;
+const fetchLatestBaileysVersion = baileys.fetchLatestBaileysVersion;
+
 const qrcode = require('qrcode-terminal');
 const config = require('./config');
 const handler = require('./handler');
@@ -292,7 +294,7 @@ async function startBot() {
     logger: suppressedLogger,
     printQRInTerminal: false,
     // Use a common desktop browser signature
-    browser: ['Chrome', 'Windows', '10.0'],
+    browser: Browsers.macOS('Chrome'),
     auth: state,
     // Memory optimization: prevent loading old messages into RAM
     syncFullHistory: false,
