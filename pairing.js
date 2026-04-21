@@ -1,22 +1,19 @@
-// pairing.js - Pairing Code Server for TMT-XMD-BOT
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;  // ← Render sets this automatically
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
 // Store active pairing sessions
 const pairingSessions = new Map();
 
-// HTML Page for pairing
+// HTML Page
 app.get('/', (req, res) => {
     res.send(`
     <!DOCTYPE html>
@@ -44,16 +41,8 @@ app.get('/', (req, res) => {
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                 text-align: center;
             }
-            h1 {
-                color: #667eea;
-                margin-bottom: 10px;
-                font-size: 28px;
-            }
-            .subtitle {
-                color: #666;
-                margin-bottom: 30px;
-                font-size: 14px;
-            }
+            h1 { color: #667eea; margin-bottom: 10px; }
+            .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
             input {
                 width: 100%;
                 padding: 15px;
@@ -80,33 +69,26 @@ app.get('/', (req, res) => {
                 font-weight: bold;
                 transition: transform 0.2s;
             }
-            button:hover {
-                transform: scale(1.02);
-            }
-            button:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-            }
+            button:hover { transform: scale(1.02); }
+            button:disabled { opacity: 0.6; cursor: not-allowed; }
             #result {
                 margin-top: 30px;
                 padding: 20px;
                 border-radius: 10px;
                 display: none;
             }
-            .success {
-                background: #d4edda;
-                color: #155724;
-                border: 1px solid #c3e6cb;
-            }
-            .error {
-                background: #f8d7da;
-                color: #721c24;
-                border: 1px solid #f5c6cb;
-            }
-            .info {
-                background: #d1ecf1;
-                color: #0c5460;
-                border: 1px solid #bee5eb;
+            .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+            .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+            .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+            .code-box {
+                font-size: 32px;
+                font-weight: bold;
+                letter-spacing: 5px;
+                background: #f0f0f0;
+                padding: 20px;
+                border-radius: 10px;
+                margin: 15px 0;
+                font-family: monospace;
             }
             .loading {
                 display: inline-block;
@@ -123,25 +105,15 @@ app.get('/', (req, res) => {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            .code-box {
-                font-size: 32px;
-                font-weight: bold;
-                letter-spacing: 5px;
-                background: #f0f0f0;
-                padding: 20px;
-                border-radius: 10px;
-                margin: 15px 0;
-                font-family: monospace;
-            }
         </style>
     </head>
     <body>
         <div class="container">
             <h1>🔐 TMT-XMD-BOT</h1>
-            <div class="subtitle">Generate Pairing Code for Session ID: <strong id="sessionDisplay">tmt_xxxx</strong></div>
+            <div class="subtitle">Generate Pairing Code for Session ID</div>
             
-            <input type="text" id="phoneNumber" placeholder="Enter your phone number" autocomplete="off">
-            <small style="display: block; margin-bottom: 15px; color: #666;">Format: 263712345678 (country code + number, no + or spaces)</small>
+            <input type="text" id="phoneNumber" placeholder="263712345678" autocomplete="off">
+            <small style="display: block; margin-bottom: 15px; color: #666;">Format: country code + number (no + or spaces)</small>
             
             <button id="generateBtn" onclick="generatePairing()">Generate Pairing Code</button>
             
@@ -149,14 +121,7 @@ app.get('/', (req, res) => {
         </div>
 
         <script>
-            // Generate random session ID with TMT prefix
-            function generateSessionId() {
-                const random = Math.random().toString(36).substring(2, 10);
-                return 'tmt_' + random;
-            }
-            
-            let currentSessionId = generateSessionId();
-            document.getElementById('sessionDisplay').textContent = currentSessionId;
+            let currentSessionId = 'tmt_' + Math.random().toString(36).substring(2, 10);
             
             async function generatePairing() {
                 const phoneNumber = document.getElementById('phoneNumber').value.trim();
@@ -170,11 +135,10 @@ app.get('/', (req, res) => {
                     return;
                 }
                 
-                // Validate phone number (only numbers)
                 if (!/^[0-9]+$/.test(phoneNumber)) {
                     resultDiv.className = 'error';
                     resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = '❌ Phone number must contain only numbers! No +, spaces, or dashes.';
+                    resultDiv.innerHTML = '❌ Phone number must contain only numbers!';
                     return;
                 }
                 
@@ -232,35 +196,17 @@ app.post('/api/pair', async (req, res) => {
         return res.json({ success: false, error: 'Missing phone number or session ID' });
     }
     
-    // Clean phone number (remove any non-digits)
     const cleanNumber = phoneNumber.replace(/\D/g, '');
-    
-    // Create unique session directory
     const sessionDir = path.join(__dirname, 'sessions', sessionId);
     
     try {
-        // Check if already has an active pairing request
-        if (pairingSessions.has(sessionId)) {
-            const existing = pairingSessions.get(sessionId);
-            if (Date.now() - existing.timestamp < 120000) { // 2 minutes
-                return res.json({ 
-                    success: true, 
-                    pairingCode: existing.code,
-                    sessionId: sessionId,
-                    message: 'Using existing pairing code (valid for 2 minutes)'
-                });
-            }
-        }
-        
         // Ensure session directory exists
         if (!fs.existsSync(sessionDir)) {
             fs.mkdirSync(sessionDir, { recursive: true });
         }
         
-        // Setup auth state
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         
-        // Create socket
         const sock = makeWASocket({
             auth: state,
             printQRInTerminal: false,
@@ -268,59 +214,37 @@ app.post('/api/pair', async (req, res) => {
             browser: ['TMT-XMD-BOT', 'Chrome', '120.0.0.0']
         });
         
-        // Handle connection updates
         let pairingCode = null;
         let timeoutId = null;
         
         const connectionHandler = async (update) => {
-            const { connection, lastDisconnect, qr } = update;
+            const { connection, qr } = update;
             
-            if (qr) {
-                // Generate pairing code instead of QR
-                if (!sock.authState.creds.registered && !pairingCode) {
-                    try {
-                        const code = await sock.requestPairingCode(cleanNumber);
-                        pairingCode = code;
-                        
-                        // Store in session map
-                        pairingSessions.set(sessionId, {
-                            code: pairingCode,
-                            timestamp: Date.now(),
-                            sock: sock
-                        });
-                        
-                        // Send response
-                        res.json({ 
-                            success: true, 
-                            pairingCode: pairingCode,
-                            sessionId: sessionId
-                        });
-                        
-                        // Clean up after 3 minutes
-                        timeoutId = setTimeout(() => {
-                            sock.end(undefined, undefined, { reason: 'timeout' });
-                            pairingSessions.delete(sessionId);
-                        }, 180000);
-                        
-                    } catch (err) {
-                        console.error('Pairing code error:', err);
-                        if (!res.headersSent) {
-                            res.json({ success: false, error: err.message });
-                        }
-                        sock.end(undefined, undefined, { reason: 'error' });
+            if (qr && !pairingCode) {
+                try {
+                    pairingCode = await sock.requestPairingCode(cleanNumber);
+                    res.json({ 
+                        success: true, 
+                        pairingCode: pairingCode,
+                        sessionId: sessionId
+                    });
+                    
+                    // Clean up after 3 minutes
+                    timeoutId = setTimeout(() => {
+                        sock.end(undefined, undefined, { reason: 'timeout' });
+                    }, 180000);
+                    
+                } catch (err) {
+                    console.error('Pairing code error:', err);
+                    if (!res.headersSent) {
+                        res.json({ success: false, error: err.message });
                     }
                 }
             }
             
             if (connection === 'open') {
                 console.log(`✅ Connected! Session: ${sessionId}`);
-                // Clear timeout on successful connection
                 if (timeoutId) clearTimeout(timeoutId);
-            }
-            
-            if (connection === 'close') {
-                console.log(`❌ Connection closed for session: ${sessionId}`);
-                pairingSessions.delete(sessionId);
             }
         };
         
@@ -331,8 +255,7 @@ app.post('/api/pair', async (req, res) => {
         setTimeout(() => {
             if (!res.headersSent) {
                 res.json({ success: false, error: 'Timeout generating pairing code' });
-                sock.end(undefined, undefined, { reason: 'timeout' });
-                pairingSessions.delete(sessionId);
+                sock.end();
             }
         }, 30000);
         
@@ -347,6 +270,6 @@ app.post('/api/pair', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`\n🔐 TMT-XMD-BOT Pairing Server`);
-    console.log(`📡 Running on http://localhost:${PORT}`);
-    console.log(`🌐 Open this URL in your browser to generate pairing code\n`);
+    console.log(`📡 Running on port ${PORT}`);
+    console.log(`🌐 Open your Render URL to generate pairing code\n`);
 });
