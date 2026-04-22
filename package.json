@@ -24,7 +24,7 @@
         "@bochilteam/scraper-facebook": "^5.0.0",
         "@vitalets/google-translate-api": "^9.2.1",
         "@whiskeysockets/baileys": "^7.0.0-rc.9",
-        "@ybd-project/ytdl-core": "^6.0.0",
+        "@ybd-project/ytdl-core": "^6.0.8",
         "axios": "^1.7.2",
         "canvas": "^3.2.1",
         "cheerio": "^1.0.0-rc.12",
