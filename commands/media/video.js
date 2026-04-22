@@ -1,14 +1,21 @@
-// commands/media/video.js
 const fs = require('fs');
 const path = require('path');
-const ytdl = require('@distube/ytdl-core');
 const ytSearch = require('yt-search');
 
-// Create temp folder if it doesn't exist
 const tempDir = path.join(__dirname, '..', '..', 'temp');
 if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
 }
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Try multiple player clients (some may work when others fail)
+const PLAYER_CLIENTS = [
+    "IOS",
+    "WEB_CREATOR",
+    "ANDROID",
+    "WEB"
+];
 
 module.exports = {
     name: 'video',
@@ -16,7 +23,6 @@ module.exports = {
     description: 'Download video by searching name',
     category: 'media',
     async execute(TmT, message, args, command) {
-        // Get values directly from message and TmT (no destructuring from undefined)
         const from = message.key.remoteJid;
         
         if (!args[0]) {
@@ -27,7 +33,6 @@ module.exports = {
         await TmT.sendMessage(from, { text: `🔍 Searching for "${query}"...` });
 
         try {
-            // Search for the video on YouTube
             const searchResults = await ytSearch(query);
             if (!searchResults.videos.length) {
                 return TmT.sendMessage(from, { text: '❌ No videos found!' });
@@ -38,45 +43,98 @@ module.exports = {
 
             await TmT.sendMessage(from, { text: `📥 Found: ${video.title}\n⏳ Downloading video...` });
 
-            // Create a safe filename
             const safeTitle = video.title.replace(/[^\w\s]/gi, '').substring(0, 50);
             const videoFileName = `${safeTitle}.mp4`;
             const videoPath = path.join(tempDir, videoFileName);
 
-            // Download the VIDEO
-            const videoStream = ytdl(videoUrl, {
-                quality: '18',
-                requestOptions: {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            let downloadSuccess = false;
+            let lastError = null;
+
+            // Method 1: Try with different player clients (this helps bypass 403)
+            for (const client of PLAYER_CLIENTS) {
+                if (downloadSuccess) break;
+                
+                for (let attempt = 1; attempt <= 2; attempt++) {
+                    try {
+                        const { default: ytdl } = await import('@ybd-project/ytdl-core');
+                        
+                        const videoStream = ytdl(videoUrl, {
+                            quality: '18',
+                            playerClients: [client],
+                            requestOptions: {
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                                }
+                            }
+                        });
+                        
+                        const writeStream = fs.createWriteStream(videoPath);
+                        await new Promise((resolve, reject) => {
+                            videoStream.pipe(writeStream);
+                            writeStream.on('finish', resolve);
+                            writeStream.on('error', reject);
+                            videoStream.on('error', reject);
+                        });
+                        
+                        downloadSuccess = true;
+                        break;
+                    } catch (err) {
+                        lastError = err;
+                        console.log(`Client ${client} attempt ${attempt} failed: ${err.message}`);
+                        if (attempt < 2) await delay(2000);
                     }
                 }
-            });
+            }
 
-            const writeStream = fs.createWriteStream(videoPath);
-            await new Promise((resolve, reject) => {
-                videoStream.pipe(writeStream);
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-                videoStream.on('error', reject);
-            });
+            // Method 2: Try without playerClients if all failed
+            if (!downloadSuccess) {
+                try {
+                    const { default: ytdl } = await import('@ybd-project/ytdl-core');
+                    
+                    const videoStream = ytdl(videoUrl, {
+                        quality: '18',
+                        requestOptions: {
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                            }
+                        }
+                    });
+                    
+                    const writeStream = fs.createWriteStream(videoPath);
+                    await new Promise((resolve, reject) => {
+                        videoStream.pipe(writeStream);
+                        writeStream.on('finish', resolve);
+                        writeStream.on('error', reject);
+                        videoStream.on('error', reject);
+                    });
+                    
+                    downloadSuccess = true;
+                } catch (err) {
+                    lastError = err;
+                    console.log(`Fallback method failed: ${err.message}`);
+                }
+            }
 
-            // Send the video file
+            if (!downloadSuccess) {
+                throw lastError || new Error('All download methods failed');
+            }
+
             await TmT.sendMessage(from, {
                 video: { url: videoPath },
                 caption: `🎬 *${video.title}*\n⏱️ Duration: ${video.timestamp}\n👁️ Views: ${video.views || 'N/A'}`
             });
 
-            // Clean up the temporary file
             fs.unlinkSync(videoPath);
 
         } catch (error) {
             console.error('Video command error:', error);
             
-            if (error.statusCode === 429) {
-                await TmT.sendMessage(from, { text: '❌ YouTube is rate-limiting us. Please wait a moment and try again.' });
+            if (error.message?.includes('403') || error.statusCode === 403) {
+                await TmT.sendMessage(from, { text: '❌ YouTube is blocking this request. This usually resolves within a few hours. Try again later or try a different video.' });
+            } else if (error.message?.includes('429')) {
+                await TmT.sendMessage(from, { text: '❌ Too many requests. Please wait a few minutes and try again.' });
             } else {
-                await TmT.sendMessage(from, { text: `❌ Failed to download video. Try another name.` });
+                await TmT.sendMessage(from, { text: `❌ Failed to download. Try another video or try again later.` });
             }
         }
     }
