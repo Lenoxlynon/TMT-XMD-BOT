@@ -1,5 +1,5 @@
 {
-    "name": "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
+    "name": "TMT-XMD-BOT",
     "version": "1.0.0",
     "description": "WhatsApp MD-Style Multi-Command Bot with Baileys",
     "main": "index.js",
@@ -11,20 +11,20 @@
     },
     "keywords": [
         "whatsapp bot",
-        "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
+        "TMT-XMD-BOT",
         "bot",
         "baileys",
         "md"
     ],
-    "author": "𝗧𝗠𝗧-𝗫𝗠𝗗-𝗕𝗢𝗧",
+    "author": "TMT-XMD-BOT",
     "license": "MIT",
     "dependencies": {
         "@bochilteam/scraper": "^5.0.1",
         "@bochilteam/scraper-tiktok": "^5.0.0",
         "@bochilteam/scraper-facebook": "^5.0.0",
-        "@distube/ytdl-core": "^4.15.8",
         "@vitalets/google-translate-api": "^9.2.1",
-        "@whiskeysockets/baileys": "^v7.0.0-rc.9",
+        "@whiskeysockets/baileys": "^7.0.0-rc.9",
+        "@ybd-project/ytdl-core": "^6.0.0",
         "axios": "^1.7.2",
         "canvas": "^3.2.1",
         "cheerio": "^1.0.0-rc.12",
