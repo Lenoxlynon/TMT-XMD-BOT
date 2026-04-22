@@ -1,7 +1,5 @@
-// commands/media/play.js
 const fs = require('fs');
 const path = require('path');
-const ytdl = require('@distube/ytdl-core'); // Use the maintained fork
 const ytSearch = require('yt-search');
 
 // Create temp folder if it doesn't exist
@@ -15,9 +13,11 @@ module.exports = {
     alias: ['music', 'song', 'ytmp3'],
     description: 'Download music as audio + document file',
     category: 'media',
-    async execute(TmT, message, args, command, { from, isGroup, reply }) {
+    async execute(TmT, message, args, command) {
+        const from = message.key.remoteJid;
+        
         if (!args[0]) {
-            return reply('❌ Please provide a song name!\nExample: .play Shape of You');
+            return TmT.sendMessage(from, { text: '❌ Please provide a song name!\nExample: .play Shape of You' });
         }
 
         const query = args.join(' ');
@@ -27,7 +27,7 @@ module.exports = {
             // Search for the video on YouTube
             const searchResults = await ytSearch(query);
             if (!searchResults.videos.length) {
-                return reply('❌ No results found!');
+                return TmT.sendMessage(from, { text: '❌ No results found!' });
             }
 
             const video = searchResults.videos[0];
@@ -35,31 +35,49 @@ module.exports = {
 
             await TmT.sendMessage(from, { text: `📥 Found: ${video.title}\n⏳ Downloading audio...` });
 
-            // Create a safe filename
+            // Create safe filename
             const safeTitle = video.title.replace(/[^\w\s]/gi, '').substring(0, 50);
             const audioFileName = `${safeTitle}.mp3`;
             const audioPath = path.join(tempDir, audioFileName);
 
-            // Download the audio using @distube/ytdl-core
-            // Add a 'requestOptions' to mimic a browser user-agent, which can help avoid blocks
-            const audioStream = ytdl(videoUrl, {
-                filter: 'audioonly',
-                quality: 'highestaudio',
-                requestOptions: {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    }
+            // ✅ FIX: Use dynamic import for the latest ytdl-core fork
+            const { default: ytdl } = await import('@ybd-project/ytdl-core');
+            
+            // Download with retry logic for 403 errors
+            let downloadSuccess = false;
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (!downloadSuccess && retryCount < maxRetries) {
+                try {
+                    const audioStream = ytdl(videoUrl, {
+                        filter: 'audioonly',
+                        quality: 'highestaudio',
+                        requestOptions: {
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            }
+                        }
+                    });
+                    
+                    const writeStream = fs.createWriteStream(audioPath);
+                    await new Promise((resolve, reject) => {
+                        audioStream.pipe(writeStream);
+                        writeStream.on('finish', resolve);
+                        writeStream.on('error', reject);
+                        audioStream.on('error', reject);
+                    });
+                    
+                    downloadSuccess = true;
+                } catch (err) {
+                    retryCount++;
+                    console.log(`Retry ${retryCount}/${maxRetries} for ${video.title}`);
+                    if (retryCount >= maxRetries) throw err;
+                    await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds before retry
                 }
-            });
+            }
 
-            const writeStream = fs.createWriteStream(audioPath);
-            await new Promise((resolve, reject) => {
-                audioStream.pipe(writeStream);
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-            });
-
-            // Send the audio file
+            // Send audio file
             await TmT.sendMessage(from, {
                 audio: { url: audioPath },
                 mimetype: 'audio/mpeg',
@@ -67,27 +85,27 @@ module.exports = {
                 caption: `🎧 *${video.title}*\n⏱️ Duration: ${video.timestamp}`
             });
 
-            // Send the same file as a document
+            // Send document file
             await TmT.sendMessage(from, {
                 document: { url: audioPath },
                 mimetype: 'audio/mpeg',
                 fileName: audioFileName,
-                caption: `📄 *Saved as:* ${audioFileName}`
+                caption: `📄 *Saved as:* ${audioFileName}\n🎵 Song: ${video.title}`
             });
 
-            // Clean up the temporary file
+            // Clean up
             fs.unlinkSync(audioPath);
-            await reply('✅ Audio and document sent successfully!');
+            await TmT.sendMessage(from, { text: '✅ Audio and document sent successfully!' });
 
         } catch (error) {
             console.error('Play command error:', error);
-            // Check for specific error types to give better feedback [citation:4]
+            
             if (error.statusCode === 429) {
-                await reply('❌ YouTube is rate-limiting us. Please wait a moment and try again.');
-            } else if (error.message.includes('signature')) {
-                await reply('❌ A YouTube update broke this feature. Please report this to the bot owner to update the library.');
+                await TmT.sendMessage(from, { text: '❌ YouTube is rate-limiting us. Please wait a moment and try again.' });
+            } else if (error.message && error.message.includes('403')) {
+                await TmT.sendMessage(from, { text: '❌ YouTube is blocking this request. Try a different song or try again later.' });
             } else {
-                await reply(`❌ Failed to download. Try another song. (Error: ${error.message.substring(0, 50)})`);
+                await TmT.sendMessage(from, { text: `❌ Failed to download. Try another song.` });
             }
         }
     }
