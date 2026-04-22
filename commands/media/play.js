@@ -13,7 +13,7 @@ module.exports = {
     name: 'play',
     alias: ['music', 'song'],
     description: 'Download music as audio + document file',
-    category: 'music',
+    category: 'media,
     async execute(TmT, message, args, command) {
         if (!args[0]) {
             return TmT.sendMessage(message.key.remoteJid, { 
