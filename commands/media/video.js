@@ -1,7 +1,7 @@
 // commands/media/video.js
 const fs = require('fs');
 const path = require('path');
-const ytdl = require('@distube/ytdl-core'); // Use the maintained fork
+const ytdl = require('@distube/ytdl-core');
 const ytSearch = require('yt-search');
 
 // Create temp folder if it doesn't exist
@@ -15,9 +15,12 @@ module.exports = {
     alias: ['vd', 'ytvideo', 'mp4'],
     description: 'Download video by searching name',
     category: 'media',
-    async execute(TmT, message, args, command, { from, reply }) {
+    async execute(TmT, message, args, command) {
+        // Get values directly from message and TmT (no destructuring from undefined)
+        const from = message.key.remoteJid;
+        
         if (!args[0]) {
-            return reply('❌ Please provide a video name!\nExample: .video Shape of You');
+            return TmT.sendMessage(from, { text: '❌ Please provide a video name!\nExample: .video Shape of You' });
         }
 
         const query = args.join(' ');
@@ -27,7 +30,7 @@ module.exports = {
             // Search for the video on YouTube
             const searchResults = await ytSearch(query);
             if (!searchResults.videos.length) {
-                return reply('❌ No videos found!');
+                return TmT.sendMessage(from, { text: '❌ No videos found!' });
             }
 
             const video = searchResults.videos[0];
@@ -40,9 +43,9 @@ module.exports = {
             const videoFileName = `${safeTitle}.mp4`;
             const videoPath = path.join(tempDir, videoFileName);
 
-            // Download the VIDEO (not just audio)
+            // Download the VIDEO
             const videoStream = ytdl(videoUrl, {
-                quality: '18', // 360p (good balance of quality and size)
+                quality: '18',
                 requestOptions: {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -55,6 +58,7 @@ module.exports = {
                 videoStream.pipe(writeStream);
                 writeStream.on('finish', resolve);
                 writeStream.on('error', reject);
+                videoStream.on('error', reject);
             });
 
             // Send the video file
@@ -65,17 +69,14 @@ module.exports = {
 
             // Clean up the temporary file
             fs.unlinkSync(videoPath);
-            await reply('✅ Video sent successfully!');
 
         } catch (error) {
             console.error('Video command error:', error);
             
             if (error.statusCode === 429) {
-                await reply('❌ YouTube is rate-limiting us. Please wait a moment and try again.');
-            } else if (error.message.includes('signature')) {
-                await reply('❌ A YouTube update broke this feature. Please report this to the bot owner.');
+                await TmT.sendMessage(from, { text: '❌ YouTube is rate-limiting us. Please wait a moment and try again.' });
             } else {
-                await reply(`❌ Failed to download video. Try another name.`);
+                await TmT.sendMessage(from, { text: `❌ Failed to download video. Try another name.` });
             }
         }
     }
