@@ -10,44 +10,60 @@ if (!fs.existsSync(tempDir)) {
 
 module.exports = {
     name: 'apk',
-    alias: ['app', 'android'],
-    description: 'Search and get APK download links',
-    category: 'media',
+    alias: ['app', 'android', 'apkdl'],
+    description: 'Search and download APK files',
+    category: 'downloader',
     async execute(TmT, message, args, command) {
         const from = message.key.remoteJid;
         
         if (!args[0]) {
-            return TmT.sendMessage(from, { text: '❌ Please provide an app name!\nExample: .apk Spotify' });
+            return TmT.sendMessage(from, { text: '❌ Please provide an app name!\nExample: .apk spotify\n\n💡 Use exact package name: .apk com.whatsapp' });
         }
         
         const query = args.join(' ');
         await TmT.sendMessage(from, { text: `🔍 Searching for "${query}" APK...` });
         
         try {
-            // Method 1: Try APKCombo (more reliable)
-            let apkUrl = await searchApkCombo(query);
+            // Try multiple sources
+            let apkUrl = null;
+            let appInfo = null;
             
-            // Method 2: Fallback to APKPure mirror
+            // Method 1: Try APKCombo (often more reliable)
+            apkUrl = await searchApkCombo(query);
+            
+            // Method 2: Try APKPure with better headers
             if (!apkUrl) {
-                apkUrl = await searchApkPureMirror(query);
+                apkUrl = await searchApkPure(query);
             }
             
-            // Method 3: Fallback to APKDownload (last resort)
+            // Method 3: If it looks like a package name, try direct
+            if (!apkUrl && query.includes('.')) {
+                apkUrl = await directPackageSearch(query);
+            }
+            
+            // Method 4: Fallback to APKDownload
             if (!apkUrl) {
                 apkUrl = await searchApkDownload(query);
             }
             
             if (!apkUrl) {
-                return TmT.sendMessage(from, { text: '❌ No APK found for that app! Try a different name.\n\n💡 Tip: Use exact app name (e.g., .apk com.whatsapp)' });
+                // Provide helpful tips
+                let tipMessage = '❌ No APK found for that app!\n\n';
+                tipMessage += '💡 Tips:\n';
+                tipMessage += '• Use exact app name: .apk spotify\n';
+                tipMessage += '• Or use package name: .apk com.spotify.music\n';
+                tipMessage += '• Try shorter names: .apk fb (for Facebook)\n';
+                tipMessage += '• Check spelling and try again';
+                return TmT.sendMessage(from, { text: tipMessage });
             }
             
-            await TmT.sendMessage(from, { text: `📥 Found APK! Downloading...\n⏳ This may take 10-20 seconds.` });
+            await TmT.sendMessage(from, { text: `📥 Downloading APK...\n⏳ This may take 15-30 seconds.` });
             
             await downloadAndSendApk(TmT, message, apkUrl, query);
             
         } catch (error) {
             console.error('APK error:', error);
-            await TmT.sendMessage(from, { text: '❌ Failed to download APK. Try another app name or use exact package name.\n\nExample: .apk com.spotify.music' });
+            await TmT.sendMessage(from, { text: '❌ Failed to download APK.\n\nTry using the exact package name:\n.apk com.whatsapp\n\nOr try a different app name.' });
         }
     }
 };
@@ -55,18 +71,25 @@ module.exports = {
 // Search on APKCombo
 async function searchApkCombo(query) {
     try {
-        const searchUrl = `https://apkcombo.com/search/?q=${encodeURIComponent(query)}`;
+        const searchTerm = query.toLowerCase().trim();
+        const searchUrl = `https://apkcombo.com/search/?q=${encodeURIComponent(searchTerm)}`;
+        
         const response = await axios.get(searchUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'text/html,application/xhtml+xml'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
+                'Accept-Language': 'en-US,en;q=0.9'
             },
-            timeout: 10000
+            timeout: 15000
         });
         
-        // Extract download link
-        const match = response.data.match(/https:\/\/apkcombo\.com\/[^\/]+\/[^\/]+\/download\/apk/);
+        // Extract first APK download link
+        const match = response.data.match(/https:\/\/apkcombo\.com\/[a-z0-9.-]+\/[a-z0-9.-]+\/download\/apk/);
         if (match) return match[0];
+        
+        // Alternative pattern
+        const altMatch = response.data.match(/https:\/\/apkcombo\.com\/download-apk\/[^"']+/);
+        if (altMatch) return altMatch[0];
         
         return null;
     } catch (error) {
@@ -75,17 +98,20 @@ async function searchApkCombo(query) {
     }
 }
 
-// Search on APKPure Mirror
-async function searchApkPureMirror(query) {
+// Search on APKPure
+async function searchApkPure(query) {
     try {
         const searchUrl = `https://apkpure.net/search?q=${encodeURIComponent(query)}`;
+        
         const response = await axios.get(searchUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml'
             },
-            timeout: 10000
+            timeout: 15000
         });
         
+        // Extract download URL
         const match = response.data.match(/https:\/\/download\.apkpure\.net\/[^"']+\.apk/);
         if (match) return match[0];
         
@@ -96,15 +122,41 @@ async function searchApkPureMirror(query) {
     }
 }
 
+// Direct search by package name
+async function directPackageSearch(packageName) {
+    try {
+        // Try to fetch from APKCombo directly using package name
+        const url = `https://apkcombo.com/apk/${packageName}/download/apk`;
+        
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml'
+            },
+            timeout: 10000,
+            maxRedirects: 5
+        });
+        
+        // Look for download link
+        const match = response.data.match(/https:\/\/apkcombo\.com\/[^"']+\.apk/);
+        if (match) return match[0];
+        
+        return null;
+    } catch (error) {
+        return null;
+    }
+}
+
 // Search on APKDownload
 async function searchApkDownload(query) {
     try {
         const searchUrl = `https://apkdownload.com/search?q=${encodeURIComponent(query)}`;
+        
         const response = await axios.get(searchUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
-            timeout: 10000
+            timeout: 15000
         });
         
         const match = response.data.match(/https:\/\/apkdownload\.com\/download\/[^"']+\.apk/);
@@ -133,7 +185,7 @@ async function downloadAndSendApk(TmT, message, apkUrl, appName) {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             },
-            timeout: 30000
+            timeout: 45000
         });
         
         const writer = fs.createWriteStream(apkPath);
@@ -149,7 +201,7 @@ async function downloadAndSendApk(TmT, message, apkUrl, appName) {
         
         if (stats.size > 100 * 1024 * 1024) {
             fs.unlinkSync(apkPath);
-            return TmT.sendMessage(from, { text: '❌ APK file is too large (over 100MB). WhatsApp does not support files this large.' });
+            return TmT.sendMessage(from, { text: '❌ APK is too large (over 100MB). WhatsApp limit reached.' });
         }
         
         await TmT.sendMessage(from, {
@@ -162,7 +214,7 @@ async function downloadAndSendApk(TmT, message, apkUrl, appName) {
         fs.unlinkSync(apkPath);
         
     } catch (error) {
-        console.error('Download error:', error);
+        console.error('Download error:', error.message);
         throw error;
     }
 }
