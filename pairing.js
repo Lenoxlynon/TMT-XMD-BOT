@@ -1,3 +1,8 @@
+/**
+ * TMT-XMD-BOT Pairing Server
+ * Generates WhatsApp pairing codes for session authentication
+ */
+
 const express = require('express');
 const pino = require('pino');
 const fs = require('fs');
@@ -290,4 +295,4 @@ app.listen(PORT, async () => {
     console.log(`🌐 Open your Render URL to generate pairing code\n`);
 });
 
-//tmt-usso-the-champ
+//tmt usso
