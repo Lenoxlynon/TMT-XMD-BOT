@@ -289,3 +289,4 @@ app.listen(PORT, async () => {
     console.log(`📡 Running on port ${PORT}`);
     console.log(`🌐 Open your Render URL to generate pairing code\n`);
 });
+
