@@ -12,7 +12,7 @@ module.exports = {
     name: 'apk',
     alias: ['app', 'android'],
     description: 'Download APK files by app name',
-    category: 'downloader',
+    category: 'media',
     async execute(TmT, message, args, command) {
         if (!args[0]) {
             return TmT.sendMessage(message.key.remoteJid, { text: '❌ Please provide an app name!\nExample: .apk Spotify' });
