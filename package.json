@@ -6,6 +6,7 @@
     "type": "commonjs",
     "scripts": {
         "start": "node index.js",
+        "web": "node pairing-heroku.js",
         "dev": "nodemon index.js",
         "install:no-puppeteer": "PUPPETEER_SKIP_DOWNLOAD=true PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm install"
     },
