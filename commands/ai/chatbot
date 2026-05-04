@@ -13,7 +13,7 @@ let userPreferences = new Map();
 
 // Your Gemini API key - Get from https://aistudio.google.com/
 // Replace 'YOUR_API_KEY_HERE' with your actual key
-const GEMINI_API_KEY = 'YOUR_API_KEY_HERE';
+const GEMINI_API_KEY = 'AIzaSyCzoBo81Rj7xCH24UowJ5tnK2yUPf_ZUZo';
 
 // System prompt - defines the bot's personality
 const SYSTEM_PROMPT = `You are TMT-XMD, a helpful WhatsApp assistant. 
