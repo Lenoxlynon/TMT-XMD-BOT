@@ -447,7 +447,83 @@ const handleMessage = async (sock, msg) => {
             });
           }
         }
+// AutoSticker feature - convert images/videos to stickers automatically
+if (isGroup) { // Process all messages in groups (including bot's own messages)
+  const groupSettings = database.getGroupSettings(from);
+  if (groupSettings.autosticker) {
+    const mediaMessage = content?.imageMessage || content?.videoMessage;
+    
+    // Only process if it's an image or video (not documents)
+    if (mediaMessage) {
+      // Skip if message has a command prefix (let command handle it)
+      if (!body.startsWith(config.prefix)) {
+        try {
+          // Import sticker command logic
+          const stickerCmd = commands.get('sticker');
+          if (stickerCmd) {
+            // Execute sticker conversion silently
+            await stickerCmd.execute(sock, msg, [], {
+              from,
+              sender,
+              isGroup,
+              groupMetadata,
+              isOwner: isOwner(sender),
+              isAdmin: await isAdmin(sock, sender, from, groupMetadata),
+              isBotAdmin: await isBotAdmin(sock, from, groupMetadata),
+              isMod: isMod(sender),
+              reply: (text) => sock.sendMessage(from, { text }, { quoted: msg }),
+              react: (emoji) => sock.sendMessage(from, { react: { text: emoji, key: msg.key } })
+            });
+            return; // Don't process as command after auto-converting
+          }
+        } catch (error) {
+          console.error('[AutoSticker Error]:', error);
+          // Continue to normal processing if autosticker fails
+        }
+      }
+    }
+  }
+}
 
+// ✅ CALL ANTI-STICKER HANDLER HERE
+if (isGroup) {
+  await handleAntiSticker(sock, msg, groupMetadata);
+}
+
+// ✅ CALL CHATBOT AUTO-REPLY HANDLER HERE
+if (chatbotModule && chatbotModule.onMessage) {
+    try {
+        await chatbotModule.onMessage(sock, msg, { from, sender, isGroup, groupMetadata });
+    } catch (chatbotError) {
+        // Silently fail - don't spam console
+    }
+}
+
+ // Check for active bomb games (before prefix check)
+try {
+  const bombModule = require('./commands/fun/bomb');
+  if (bombModule.gameState && bombModule.gameState.has(sender)) {
+    const bombCommand = commands.get('bomb');
+    if (bombCommand && bombCommand.execute) {
+      // User has active game, process input
+      await bombCommand.execute(sock, msg, [], {
+        from,
+        sender,
+        isGroup,
+        groupMetadata,
+        isOwner: isOwner(sender),
+        isAdmin: await isAdmin(sock, sender, from, groupMetadata),
+        isBotAdmin: await isBotAdmin(sock, from, groupMetadata),
+        isMod: isMod(sender),
+        reply: (text) => sock.sendMessage(from, { text }, { quoted: msg }),
+        react: (emoji) => sock.sendMessage(from, { react: { text: emoji, key: msg.key } })
+      });
+      return; // Don't process as command
+    }
+  }
+} catch (e) {
+  // Silently ignore if bomb command doesn't exist or has errors
+          }
         if (mode === 'all') {
           const rand = emojis[Math.floor(Math.random() * emojis.length)];
           await sock.sendMessage(jid, {
