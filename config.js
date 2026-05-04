@@ -24,8 +24,8 @@ module.exports = {
     autoTyping: false,
     autoBio: false,
     autoSticker: false,
-    autoReact: false,
-    autoReactMode: 'bot', // set bot or all via cmd
+    autoReact: true,
+    autoReactMode: 'all', // set bot or all via cmd
     autoDownload: false,
     
     // Group Settings Defaults
