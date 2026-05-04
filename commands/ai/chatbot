@@ -1,0 +1,196 @@
+/**
+ * AI Chatbot Command - Auto-reply using Google Gemini AI
+ * Responds to messages in private chats and when mentioned in groups
+ */
+
+const axios = require('axios');
+
+// Conversation memory (stores last 5 messages per user for context)
+const conversationMemory = new Map();
+
+// User preferences (who has auto-reply enabled)
+let userPreferences = new Map();
+
+// Your Gemini API key - Get from https://aistudio.google.com/
+// Replace 'YOUR_API_KEY_HERE' with your actual key
+const GEMINI_API_KEY = 'YOUR_API_KEY_HERE';
+
+// System prompt - defines the bot's personality
+const SYSTEM_PROMPT = `You are TMT-XMD, a helpful WhatsApp assistant. 
+You are friendly, concise, and provide accurate information. 
+Keep responses short (under 500 characters for WhatsApp).
+Avoid using markdown or special formatting.`;
+
+module.exports = {
+    name: 'chatbot',
+    alias: ['ai', 'bot', 'autoreply'],
+    description: 'Enable/disable AI auto-reply or ask AI directly',
+    category: 'ai',
+    async execute(TmT, message, args, command, context) {
+        const from = message.key.remoteJid;
+        const sender = message.key.participant || message.key.remoteJid;
+        const isGroup = from.endsWith('@g.us');
+
+        // Toggle auto-reply ON/OFF
+        if (args[0] && (args[0].toLowerCase() === 'on' || args[0].toLowerCase() === 'off')) {
+            const newState = args[0].toLowerCase() === 'on';
+            userPreferences.set(sender, newState);
+            
+            return TmT.sendMessage(from, {
+                text: `🤖 *AI Chatbot is now ${newState ? 'ENABLED' : 'DISABLED'}!*\n\n` +
+                      `I will ${newState ? 'automatically reply to your messages' : 'only reply when you use .ask'}.\n\n` +
+                      `_To ask directly: .ask your question_`
+            });
+        }
+
+        // Direct .ask command
+        if (command === 'ask' && args.length > 0) {
+            const question = args.join(' ');
+            await TmT.sendMessage(from, { text: '🤔 Thinking...' });
+            
+            const aiResponse = await getAIResponse(question, sender);
+            await TmT.sendMessage(from, { text: aiResponse });
+            return;
+        }
+
+        // Show current status
+        const isEnabled = userPreferences.get(sender) === true;
+        return TmT.sendMessage(from, {
+            text: `🤖 *AI Chatbot Status*\n\n` +
+                  `Current: ${isEnabled ? '✅ ENABLED' : '❌ DISABLED'}\n\n` +
+                  `To enable: .chatbot on\n` +
+                  `To disable: .chatbot off\n` +
+                  `To ask directly: .ask your question`
+        });
+    },
+    
+    // This function is called automatically for EVERY message
+    async onMessage(TmT, message, context) {
+        const from = message.key.remoteJid;
+        const sender = message.key.participant || message.key.remoteJid;
+        const isGroup = from.endsWith('@g.us');
+        
+        // Check if auto-reply is enabled for this user
+        const isEnabled = userPreferences.get(sender) === true;
+        if (!isEnabled) return;
+        
+        // Don't reply to our own messages
+        if (message.key.fromMe) return;
+        
+        // Extract message text
+        let userMessage = '';
+        if (message.message?.conversation) {
+            userMessage = message.message.conversation;
+        } else if (message.message?.extendedTextMessage?.text) {
+            userMessage = message.message.extendedTextMessage.text;
+        } else {
+            return; // Not a text message
+        }
+        
+        // Don't reply to commands (messages starting with .)
+        if (userMessage.startsWith('.')) return;
+        
+        // In groups: only reply when bot is mentioned or replied to
+        if (isGroup) {
+            const botNumber = TmT.user.id?.split(':')[0];
+            const isMentioned = message.message?.extendedTextMessage?.contextInfo?.mentionedJid?.some(
+                jid => jid.includes(botNumber)
+            );
+            const isRepliedToBot = message.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stanzaId;
+            
+            if (!isMentioned && !isRepliedToBot) return;
+            
+            // Remove bot mention from message
+            userMessage = userMessage.replace(new RegExp(`@${botNumber}\\s*`, 'g'), '').trim();
+            if (userMessage.length === 0) return;
+        }
+        
+        // Show typing indicator
+        await TmT.sendPresenceUpdate('composing', from);
+        
+        // Get AI response
+        const aiResponse = await getAIResponse(userMessage, sender);
+        
+        // Send response
+        await TmT.sendMessage(from, {
+            text: aiResponse,
+            edit: message.key // Reply to the original message
+        });
+    }
+};
+
+/**
+ * Get AI response from Google Gemini
+ * @param {string} userMessage - The user's message
+ * @param {string} userId - User ID for conversation memory
+ * @returns {Promise<string>} - AI response
+ */
+async function getAIResponse(userMessage, userId) {
+    // Check if API key is configured
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_API_KEY_HERE') {
+        return "⚠️ *API Key Missing!*\n\nPlease add your Gemini API key to the chatbot.js file.\n\nGet a free key at: https://aistudio.google.com/";
+    }
+    
+    try {
+        // Get or create conversation history for this user
+        let history = conversationMemory.get(userId);
+        if (!history) {
+            // Initialize with system prompt
+            history = [
+                { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+                { role: "model", parts: [{ text: "I understand. I'll be a helpful WhatsApp assistant." }] }
+            ];
+        }
+        
+        // Add user message to history
+        history.push({ role: "user", parts: [{ text: userMessage }] });
+        
+        // Keep only last 10 messages (5 exchanges) to save tokens
+        if (history.length > 12) {
+            history = history.slice(-12);
+        }
+        
+        // Call Gemini API
+        const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                contents: history,
+                generationConfig: {
+                    temperature: 0.8,
+                    maxOutputTokens: 500,
+                    topP: 0.9
+                }
+            },
+            { timeout: 15000 }
+        );
+        
+        // Extract response
+        const aiReply = response.data.candidates?.[0]?.content?.parts?.[0]?.text || 
+                       "I'm not sure how to respond to that.";
+        
+        // Add AI response to history
+        history.push({ role: "model", parts: [{ text: aiReply }] });
+        conversationMemory.set(userId, history);
+        
+        return aiReply;
+        
+    } catch (error) {
+        console.error('Gemini API Error:', error.response?.data || error.message);
+        
+        // Handle specific errors
+        if (error.response?.status === 429) {
+            return "⚠️ *Rate Limit Exceeded*\n\nToo many requests. Please wait a moment and try again.";
+        } else if (error.response?.status === 403) {
+            return "⚠️ *Invalid API Key*\n\nPlease check your Gemini API key configuration.";
+        } else if (error.response?.status === 503) {
+            return "⚠️ *Service Unavailable*\n\nThe AI service is busy. Please try again in a moment.";
+        }
+        
+        return "⚠️ *Service Error*\n\nI'm having trouble processing your request. Please try again later.";
+    }
+}
+
+// Clear conversation memory every hour to prevent memory leaks
+setInterval(() => {
+    conversationMemory.clear();
+}, 3600000);
