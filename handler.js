@@ -15,6 +15,15 @@ const axios = require('axios');
 const groupMetadataCache = new Map();
 const CACHE_TTL = 60000; // 1 minute cache
 
+// Load chatbot module for auto-reply
+let chatbotModule = null;
+try {
+    chatbotModule = require('./commands/ai/chatbot');
+    console.log('✅ Chatbot module loaded');
+} catch (e) {
+    console.log('⚠️ Chatbot module not found, auto-reply disabled');
+}
+
 // Load all commands
 const commands = loadCommands();
 
