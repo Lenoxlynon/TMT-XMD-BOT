@@ -1,20 +1,18 @@
 /**
- * .playapi command - Download music using external API with retry logic
+ * .playapi command - Download music using external APIs with multiple fallbacks
  */
 
 const axios = require('axios');
 const yts = require('yt-search');
 
 const AXIOS_DEFAULTS = {
-    timeout: 60000,
+    timeout: 30000,
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 };
 
-// Retry function with exponential backoff
-async function tryRequest(getter, attempts = 3) {
+async function tryRequest(getter, attempts = 2) {
     let lastError;
     for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
@@ -22,28 +20,15 @@ async function tryRequest(getter, attempts = 3) {
         } catch (err) {
             lastError = err;
             if (attempt < attempts) {
-                // Exponential backoff: 1s, 2s, 4s
-                const delay = 1000 * Math.pow(2, attempt - 1);
-                console.log(`Retry ${attempt}/${attempts} after ${delay}ms`);
-                await new Promise(r => setTimeout(r, delay));
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
     }
     throw lastError;
 }
 
-// List of backup APIs (if Keith API fails)
-const BACKUP_APIS = [
-    {
-        name: 'Keith API',
-        getUrl: (videoUrl) => `https://apis-keith.vercel.app/download/dlmp3?url=${encodeURIComponent(videoUrl)}`,
-        parseResponse: (data) => {
-            if (data?.status && data?.result?.downloadUrl) {
-                return { download: data.result.downloadUrl, title: data.result.title };
-            }
-            return null;
-        }
-    },
+// List of working APIs (excluding the crashed one)
+const WORKING_APIS = [
     {
         name: 'EliteProTech',
         getUrl: (videoUrl) => `https://eliteprotech-apis.zone.id/ytdown?url=${encodeURIComponent(videoUrl)}&format=mp3`,
@@ -63,6 +48,16 @@ const BACKUP_APIS = [
             }
             return null;
         }
+    },
+    {
+        name: 'Okatsu',
+        getUrl: (videoUrl) => `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`,
+        parseResponse: (data) => {
+            if (data?.dl) {
+                return { download: data.dl, title: data.title };
+            }
+            return null;
+        }
     }
 ];
 
@@ -77,7 +72,7 @@ module.exports = {
 
         if (!searchQuery) {
             return TmT.sendMessage(from, { 
-                text: "❌ What song do you want to download?\n\nExample: .playapi Shape of You"
+                text: "❌ What song do you want to download?\n\nExample: .playapi Shape of You\n\n⚠️ *Note:* If this fails, use .play instead"
             });
         }
 
@@ -87,27 +82,23 @@ module.exports = {
             // Search YouTube
             const { videos } = await yts(searchQuery);
             if (!videos || videos.length === 0) {
-                return TmT.sendMessage(from, { text: "❌ No songs found! Try a different search term." });
+                return TmT.sendMessage(from, { text: "❌ No songs found! Try .play instead." });
             }
 
             const video = videos[0];
             const videoUrl = video.url;
             const title = video.title;
 
-            await TmT.sendMessage(from, { text: `📥 *Found:* ${title}\n⏳ *Fetching download link...*` });
+            await TmT.sendMessage(from, { text: `📥 *Found:* ${title}\n⏳ *Trying APIs...*` });
 
-            // Try each API in sequence until one works
             let audioData = null;
             let usedApi = null;
 
-            for (const api of BACKUP_APIS) {
+            for (const api of WORKING_APIS) {
                 try {
                     console.log(`Trying ${api.name} API...`);
                     const response = await tryRequest(() => 
-                        axios.get(api.getUrl(videoUrl), { 
-                            ...AXIOS_DEFAULTS,
-                            timeout: 30000 
-                        })
+                        axios.get(api.getUrl(videoUrl), AXIOS_DEFAULTS)
                     );
                     
                     const result = api.parseResponse(response.data);
@@ -123,18 +114,17 @@ module.exports = {
             }
 
             if (!audioData || !audioData.download) {
-                throw new Error('All APIs failed to provide a download link');
+                // Instead of failing, suggest using .play
+                return TmT.sendMessage(from, { 
+                    text: "❌ *All APIs are currently unavailable*\n\nPlease use the main command instead:\n`.play " + searchQuery + "`\n\nThis uses direct YouTube downloading and should work."
+                });
             }
-
-            await TmT.sendMessage(from, { text: `✅ *Using ${usedApi} API*\n📥 Downloading audio...` });
 
             // Download the audio file
             const audioResponse = await axios.get(audioData.download, {
                 responseType: 'arraybuffer',
                 timeout: 60000,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                }
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
             const audioBuffer = Buffer.from(audioResponse.data);
@@ -144,22 +134,16 @@ module.exports = {
                 audio: audioBuffer,
                 mimetype: "audio/mpeg",
                 fileName: `${(audioData.title || title).replace(/[^\w\s-]/g, '')}.mp3`,
-                caption: `🎧 *${audioData.title || title}*\n\n📥 Downloaded via ${usedApi}\n⚡ Powered by TMT-XMD-BOT`
+                caption: `🎧 *${audioData.title || title}*\n\n📥 Downloaded via ${usedApi}`
             });
 
         } catch (error) {
             console.error('PlayAPI error:', error);
             
-            let errorMessage = '❌ Failed to download song. ';
-            if (error.message && error.message.includes('timeout')) {
-                errorMessage = '❌ API request timed out. The servers are busy. Try again later or use .play';
-            } else if (error.message && error.message.includes('All APIs failed')) {
-                errorMessage = '❌ All download sources are currently unavailable. Please use .play instead.';
-            } else {
-                errorMessage = '❌ Download failed. Please try again later.\n\n_Tip: Use .play as an alternative_';
-            }
-            
-            await TmT.sendMessage(from, { text: errorMessage });
+            // Suggest using .play instead
+            await TmT.sendMessage(from, { 
+                text: `❌ *Download failed*\n\nThe external APIs are currently unavailable.\n\nPlease use: .play ${searchQuery || 'Shape of You'}`
+            });
         }
     }
 };
