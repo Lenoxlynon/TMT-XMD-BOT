@@ -1,5 +1,9 @@
 build:
   docker:
     web: Dockerfile
+  config:
+    NODE_VERSION: 20.18.0
+    NODE_ENV: production
+
 run:
   web: node index.js
