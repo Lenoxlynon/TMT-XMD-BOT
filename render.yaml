@@ -5,11 +5,16 @@ services:
     name: tmt-xmd-bot
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: |
+      apt-get update
+      apt-get install -y ffmpeg
+      npm install
     startCommand: node index.js
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
+      - key: NODE_ENV
+        value: production
     healthCheckPath: /
 
   # Pairing Code Generator
